@@ -56,13 +56,10 @@ class SettingState extends ChangeNotifier {
     Position position = await _determinePosition();
     String lat = position.latitude.toString();
     String lon = position.longitude.toString();
-    print("${lat} - ${lon}");
     final Response response = await ApiServices().get(
         'http://api.openweathermap.org/geo/1.0/reverse?lat=$lat&lon=$lon&limit=1&appid=fadf9668e3f907defd8764e9a3debdb8');
     final body = jsonDecode(response.body);
     initCity = CityModel.fromMap(body.first);
-    print(initCity?.name);
-    print(initCity?.country);
     notifyListeners();
   }
 
@@ -75,7 +72,6 @@ class SettingState extends ChangeNotifier {
       CityModel city = CityModel.fromMap(i);
       listCity.add(city);
     }
-    print(listCity.first.name);
     notifyListeners();
   }
 
@@ -84,7 +80,6 @@ class SettingState extends ChangeNotifier {
         'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=fadf9668e3f907defd8764e9a3debdb8');
     final body = jsonDecode(response.body);
     weatherData = WeatherData.fromMap(body);
-    print(weatherData?.main.feelsLike);
     notifyListeners();
   }
 
@@ -98,7 +93,6 @@ class SettingState extends ChangeNotifier {
       tmp.add(weather);
     }
     listForerestWeather = tmp;
-    print(listForerestWeather.length);
     notifyListeners();
   }
 }

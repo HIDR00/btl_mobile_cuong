@@ -1,19 +1,21 @@
+import 'package:hive/hive.dart';
 
+part 'city_model.g.dart';
+
+@HiveType(typeId: 0)
 class CityModel {
-    late String name;
-    late double lat;
-    late double lon;
-    late String country;
-    String? state;
-  
-  CityModel({
-    required this.name,
-    required this.lat,
-    required this.lon,
-    required this.country,
-    this.state
-  });
+  @HiveField(0)
+  late String name;
+  @HiveField(1)
+  late double lat;
+  @HiveField(2)
+  late double lon;
+  @HiveField(3)
+  late String country;
+  @HiveField(4)
+  String? state;
 
+  CityModel({required this.name, required this.lat, required this.lon, required this.country, this.state});
 
   factory CityModel.fromMap(Map<String, dynamic> map) {
     return CityModel(
@@ -24,14 +26,4 @@ class CityModel {
       state: map['state'] ?? '',
     );
   }
-
-  // Map<String, dynamic> toJson() => {
-  //   "name": name,
-  //   "lat": lat,
-  //   "lon": lon,
-  //   "country": country,
-  //   "state": state
-  // };
-
-  // factory CityModel.fromJson(String source) => CityModel.fromMap(json.decode(source) as Map<String, dynamic>);
 }

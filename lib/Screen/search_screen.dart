@@ -24,6 +24,7 @@ class _SearchScreenState extends State<SearchScreen> {
             border: Border.all(color: Colors.grey)),
         child: TextField(
           autofocus: true,
+          //
           onChanged: (value) {
             context.read<SettingState>().fetchListCityData(value);
           },
@@ -45,7 +46,6 @@ class _SearchScreenState extends State<SearchScreen> {
             itemBuilder: (context, index) {
               return GestureDetector(
                 onTap: () {
-                  print('${value[index].lat}:${value[index].lon}');
                   Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen(city: value[index])));
                 },
                 child: Container(

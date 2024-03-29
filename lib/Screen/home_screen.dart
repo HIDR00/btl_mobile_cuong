@@ -1,4 +1,5 @@
 import 'package:cuongkh1_project/Screen/chart_weater.dart';
+import 'package:cuongkh1_project/Screen/drawer_screen.dart';
 import 'package:cuongkh1_project/Screen/forecast_weather.dart';
 import 'package:cuongkh1_project/Screen/search_screen.dart';
 import 'package:cuongkh1_project/controller/setting_state.dart';
@@ -8,6 +9,7 @@ import 'package:cuongkh1_project/model/weather_model.dart';
 import 'package:cuongkh1_project/services/constants.dart';
 import 'package:dashed_circular_progress_bar/dashed_circular_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -20,20 +22,30 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<CityModel> wishList = [];
+  var box = Hive.box("wishList");
+
   @override
   void initState() {
     super.initState();
-    context.read<SettingState>().fetchLatLonCityData(
-        widget.city.lat.toString(), widget.city.lon.toString());
-    context.read<SettingState>().fetchForecastWeatherData(
-        widget.city.lat.toString(), widget.city.lon.toString());
+    context.read<SettingState>().fetchLatLonCityData(widget.city.lat.toString(), widget.city.lon.toString());
+    context.read<SettingState>().fetchForecastWeatherData(widget.city.lat.toString(), widget.city.lon.toString());
+    var boxList = box.get('id');
+    if (boxList != null) {
+      wishList = boxList.cast<CityModel>();
+    } else {
+      wishList = [];
+    }
+  }
+
+  bool checkFavorite(CityModel city, List<CityModel> listFavoriteCity) {
+    return listFavoriteCity.any((favoriteCity) => favoriteCity.lat == city.lat && favoriteCity.lon == city.lon);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          automaticallyImplyLeading: false,
           title: Container(
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(25),
@@ -41,10 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: Border.all(color: Colors.grey)),
             child: GestureDetector(
               onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SearchScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
               },
               child: const TextField(
                 enabled: false,
@@ -57,7 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          )),
+          ),
+          ),
+      drawer: const DrawerScreen(),
       body: Selector<SettingState, WeatherData?>(
           selector: (ctx, state) => state.weatherData,
           builder: (context, value, child) {
@@ -81,19 +92,39 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const SizedBox(height: 10),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               Text(
                                 widget.city.name,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
                               ),
-                              const Icon(
-                                Icons.location_on,
-                                color: Colors.white,
-                              )
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    if(checkFavorite(widget.city, wishList)){
+                                    wishList.remove(widget.city);
+                                  }else{
+                                    wishList.add(widget.city);
+                                  }
+                                  });
+                                  box.put('id', wishList);
+                                },
+                                child: Container(
+                                  height: 50,
+                                  width: 70,
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: Colors.grey, width: 1),
+                                      borderRadius: BorderRadius.circular(20)),
+                                  child: checkFavorite(widget.city, wishList)
+                                      ? const Icon(Icons.favorite, color: Colors.pink, size: 35)
+                                      : const Icon(
+                                          Icons.favorite_border,
+                                          color: Colors.grey,
+                                          size: 35,
+                                        ),
+                                ),
+                              ),
                             ],
                           ),
                           Row(
@@ -102,38 +133,30 @@ class _HomeScreenState extends State<HomeScreen> {
                               Column(
                                 children: [
                                   Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
                                         value.main.temp.toString(),
                                         style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 40,
-                                            fontWeight: FontWeight.bold),
+                                            color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
                                       ),
                                       const Text(
                                         'o',
-                                        style: TextStyle(
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
+                                        style:
+                                            TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
                                       ),
                                     ],
                                   ),
                                   Text(
                                     value.weather[0].description,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold),
+                                    style:
+                                        const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 30),
                                   Text(
-                                    '${DateFormat('EEE').format(DateTime.now())}, ${DateFormat('MMM').format(DateTime.now())} ${DateFormat('D').format(DateTime.now())}',
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 15),
+                                    '${DateFormat('EEE').format(DateTime.now())}, ${DateFormat('MMM').format(DateTime.now())} ${DateTime.now().day}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 15),
                                   ),
                                 ],
                               ),
@@ -149,27 +172,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    Selector<SettingState, List<ForecastModel>>(
-                        selector: (ctx, state) => state.listForerestWeather,
-                        builder: (context, value, child) {
-                          if (value.isEmpty) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
-                          return ChartWeather(
-                              listWeather: value.length >= 5 ? value.getRange(0, 5).toList() : value);
-                        }),
-                        SizedBox(height: 30),
+                    _bieuDoThoiTietTrongNgay(),
+                    SizedBox(height: 30),
                     SizedBox(
                       height: 200,
                       width: double.infinity,
                       child: GridView(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 17,
-                                mainAxisSpacing: 8,
-                                childAspectRatio: 4 / 2),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, crossAxisSpacing: 17, mainAxisSpacing: 8, childAspectRatio: 4 / 2),
                         children: [
                           Container(
                             decoration: BoxDecoration(
@@ -180,8 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.only(left: 20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
                                   Row(
                                     children: [
@@ -193,16 +202,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 5),
-                                      const Text('Humidity',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13))
+                                      const Text('Humidity', style: TextStyle(color: Colors.white, fontSize: 13))
                                     ],
                                   ),
                                   Center(
                                     child: Text('${value.main.humidity} %',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 20)),
+                                        style: TextStyle(color: Colors.white, fontSize: 20)),
                                   )
                                 ],
                               ),
@@ -217,8 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.only(left: 20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
                                   Row(
                                     children: [
@@ -230,16 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 5),
-                                      const Text('Wind',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13))
+                                      const Text('Wind', style: TextStyle(color: Colors.white, fontSize: 13))
                                     ],
                                   ),
                                   Center(
-                                    child: Text('${value.wind} m/s',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 20)),
+                                    child:
+                                        Text('${value.wind} m/s', style: TextStyle(color: Colors.white, fontSize: 20)),
                                   )
                                 ],
                               ),
@@ -254,8 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: EdgeInsets.only(left: 20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
                                   const Row(
                                     children: [
@@ -266,16 +265,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                             color: Colors.white,
                                           )),
                                       SizedBox(width: 5),
-                                      Text('Pressure',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13))
+                                      Text('Pressure', style: TextStyle(color: Colors.white, fontSize: 13))
                                     ],
                                   ),
                                   Center(
                                     child: Text('${value.main.pressure} mb',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 20)),
+                                        style: TextStyle(color: Colors.white, fontSize: 20)),
                                   )
                                 ],
                               ),
@@ -290,8 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: EdgeInsets.only(left: 20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
                                   const Row(
                                     children: [
@@ -302,16 +296,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                             color: Colors.white,
                                           )),
                                       SizedBox(width: 5),
-                                      Text('Visibility',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13))
+                                      Text('Visibility', style: TextStyle(color: Colors.white, fontSize: 13))
                                     ],
                                   ),
                                   Center(
                                     child: Text('${value.visibility / 1000} km',
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 20)),
+                                        style: TextStyle(color: Colors.white, fontSize: 20)),
                                   )
                                 ],
                               ),
@@ -320,91 +310,90 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      height: 180,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: Constants().ColorPrimary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 15),
-                          SizedBox(
-                            height: 100,
-                            width: double.infinity,
-                            child: DashedCircularProgressBar.aspectRatio(
-                              aspectRatio: 2,
-                              progress: (100.0 *
-                                      ((DateTime.now().hour * 60 +
-                                              DateTime.now().minute) -
-                                          (value.sunrise.hour * 60 +
-                                              value.sunrise.minute)) /
-                                      ((value.sunset.hour * 60 +
-                                              value.sunset.minute) -
-                                          (value.sunrise.hour * 60 +
-                                              value.sunrise.minute)))
-                                  .clamp(0, 100),
-                              startAngle: 270,
-                              sweepAngle: 181,
-                              circleCenterAlignment: Alignment.bottomCenter,
-                              foregroundColor: Colors.yellow,
-                              backgroundColor: Color(0xffeeeeee),
-                              foregroundStrokeWidth: 3,
-                              backgroundStrokeWidth: 2,
-                              backgroundDashSize: 1,
-                              seekColor: Colors.yellow,
-                              seekSize: 22,
-                              animation: true,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(top: 10, left: 60),
-                            child: Row(
-                              children: [
-                                Column(
-                                  children: [
-                                    const Text('Sunrise',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(
-                                        "${value.sunrise.hour.toString().padLeft(2, '0')}:${value.sunrise.minute.toString().padLeft(2, '0')}",
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold))
-                                  ],
-                                ),
-                                const SizedBox(width: 140),
-                                Column(
-                                  children: [
-                                    const Text('Sunset',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(
-                                        "${value.sunset.hour.toString().padLeft(2, '0')}:${value.sunset.minute.toString().padLeft(2, '0')}",
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold))
-                                  ],
-                                )
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    Forecast(),
+                    _matTroiMocLan(value),
+                    const ThoiTiet5NgayTiepTheo(),
                   ],
                 ),
               ),
             );
           }),
     );
+  }
+
+  Container _matTroiMocLan(WeatherData value) {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: Constants().ColorPrimary,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 15),
+          SizedBox(
+            height: 100,
+            width: double.infinity,
+            child: DashedCircularProgressBar.aspectRatio(
+              aspectRatio: 2,
+              progress: (100.0 *
+                      ((DateTime.now().hour * 60 + DateTime.now().minute) -
+                          (value.sunrise.hour * 60 + value.sunrise.minute)) /
+                      ((value.sunset.hour * 60 + value.sunset.minute) -
+                          (value.sunrise.hour * 60 + value.sunrise.minute)))
+                  .clamp(0, 100),
+              startAngle: 270,
+              sweepAngle: 181,
+              circleCenterAlignment: Alignment.bottomCenter,
+              foregroundColor: Colors.yellow,
+              backgroundColor: Color(0xffeeeeee),
+              foregroundStrokeWidth: 3,
+              backgroundStrokeWidth: 2,
+              backgroundDashSize: 1,
+              seekColor: Colors.yellow,
+              seekSize: 22,
+              animation: true,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: 10, left: 60),
+            child: Row(
+              children: [
+                Column(
+                  children: [
+                    const Text('Sunrise',
+                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                        "${value.sunrise.hour.toString().padLeft(2, '0')}:${value.sunrise.minute.toString().padLeft(2, '0')}",
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold))
+                  ],
+                ),
+                const SizedBox(width: 140),
+                Column(
+                  children: [
+                    const Text('Sunset',
+                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                        "${value.sunset.hour.toString().padLeft(2, '0')}:${value.sunset.minute.toString().padLeft(2, '0')}",
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold))
+                  ],
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Selector<SettingState, List<ForecastModel>> _bieuDoThoiTietTrongNgay() {
+    return Selector<SettingState, List<ForecastModel>>(
+        selector: (ctx, state) => state.listForerestWeather,
+        builder: (context, value, child) {
+          if (value.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ChartWeather(listWeather: value.length >= 5 ? value.getRange(0, 5).toList() : value);
+        });
   }
 }

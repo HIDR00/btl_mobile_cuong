@@ -30,7 +30,6 @@ class WeatherData {
     }
     return DateTime.fromMillisecondsSinceEpoch(unixTime * 1000, isUtc: true)
       .add(Duration(seconds: timezone));
-    // return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 }
 
